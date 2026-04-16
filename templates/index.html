@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI DevOps Agent</title>
+</head>
+<body>
+    <h1>🚀 AI DevOps Agent</h1>
+    <p>Paste your logs below:</p>
+
+    <form action="/analyze" method="post">
+        <textarea name="log_input" rows="10" cols="50">{{ log_input or "" }}</textarea><br></br>
+        <button type="submit">Analyze</button>
+    </form>
+    {% if result %}
+    <h2>Result:</h2>
+    <p>{{ result }}</p>
+{% endif %}
+</body>
+</html>

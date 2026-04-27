@@ -1,9 +1,22 @@
-from fastapi import FastAPI, Request
-from fastapi.templating import Jinja2Templates
-from fastapi import Form
+from fastapi import FastAPI
+from pydantic import BaseModel
 import ollama
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class LogRequest(BaseModel):
+    log_input: str
+
 
 def analyze_logs_with_ai(log_data: str):
     prompt = f"""
@@ -26,22 +39,15 @@ Give:
 
     return response["message"]["content"]
 
-# IMPORTANT: correct initialization
-templates = Jinja2Templates(directory="templates")
-
-@app.get("/")
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/analyze")
-async def analyze(request: Request, log_input: str = Form(...)):
-    ai_result = analyze_logs_with_ai(log_input)
+async def analyze(request: LogRequest):
+    result = analyze_logs_with_ai(request.log_input)
+    return {"result": result}
 
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "result": ai_result,
-            "log_input": log_input
-        }
-    )
+
+
+
+@app.get("/")
+async def home():
+    return FileResponse("frontend/index.html")

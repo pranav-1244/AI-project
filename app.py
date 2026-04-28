@@ -25,7 +25,7 @@ You are a senior DevOps engineer.
 Analyze the following logs:
 {log_data}
 
-Give:
+Give:(give these topics in a structured format, use markdown if possible)
 1. Issue
 2. Root cause
 3. Fix

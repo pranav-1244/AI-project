@@ -2,68 +2,228 @@
 <html>
 <head>
     <title>AI DevOps Agent</title>
-    <h1>FRONTEND VERSION LOADED</h1>
     <style>
         body {
-            font-family: Arial;
-            background: #1e3c72;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #343541;
             color: white;
-            padding: 40px;
+            display: flex;
+            height: 100vh;
         }
 
-        .container {
-            max-width: 700px;
-            margin: auto;
+        .sidebar {
+            width: 260px;
+            background-color: #202123;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .new-chat {
+            padding: 12px;
+            background-color: #444654;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            background-color: #202123;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 14px;
+            margin: 10px 0;
+            border-radius: 10px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .user {
+            align-self: flex-end;
+            background-color: #0b93f6;
+        }
+
+        .bot {
+            align-self: flex-start;
+            background-color: #444654;
+        }
+
+        .input-container {
+            display: flex;
+            padding: 15px;
+            background-color: #202123;
         }
 
         textarea {
-            width: 100%;
-            height: 150px;
-            margin-top: 10px;
+            flex: 1;
+            resize: none;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
         }
 
-        button {
-            margin-top: 10px;
-            padding: 10px;
-            width: 100%;
+        button.send {
+            margin-left: 10px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #19c37d;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
         }
 
-        .result {
-            margin-top: 20px;
-            background: white;
-            color: black;
-            padding: 15px;
+        button.send:hover {
+            background-color: #16a46a;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🚀 AI DevOps Agent</h1>
+<div class="sidebar">
+    <button class="new-chat" onclick="newChat()">+ New Chat</button>
+    <div class="chat-history" id="chatHistory">
+        <p>No previous chats</p>
+    </div>
+</div>
 
-    <textarea id="logInput" placeholder="Paste logs here..."></textarea>
-    <button onclick="analyzeLogs()">Analyze</button>
+<div class="main">
+    <div class="header">🚀 AI DevOps Agent</div>
 
-    <div id="result" class="result" style="display:none;"></div>
+    <div class="chat-container" id="chatContainer"></div>
+
+    <div class="input-container">
+        <textarea id="logInput" rows="2" placeholder="Paste your logs here..."></textarea>
+        <button class="send" onclick="analyzeLogs()">Send</button>
+    </div>
 </div>
 
 <script>
-async function analyzeLogs() {
-    const logInput = document.getElementById("logInput").value;
+let conversationCount = 1;
 
-    const response = await fetch("http://127.0.0.1:8000/analyze", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ log_input: logInput })
+let chats = [];
+let currentChat = [];
+let chatCount = 1;
+
+function newChat() {
+    const chatContainer = document.getElementById("chatContainer");
+    const history = document.getElementById("chatHistory");
+
+    // Save current chat before clearing
+    if (currentChat.length > 0) {
+        chats.push([...currentChat]);
+
+        const historyItem = document.createElement("p");
+        historyItem.innerText = "Chat " + chatCount;
+        historyItem.style.cursor = "pointer";
+
+        const chatIndex = chats.length - 1;
+
+        historyItem.onclick = function() {
+            loadChat(chatIndex);
+        };
+
+        history.appendChild(historyItem);
+
+        chatCount++;
+    }
+
+    currentChat = [];
+    chatContainer.innerHTML = "";
+}
+function loadChat(index) {
+    const chatContainer = document.getElementById("chatContainer");
+    chatContainer.innerHTML = "";
+
+    chats[index].forEach(msg => {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "message " + msg.role;
+        messageDiv.innerText = msg.text;
+        chatContainer.appendChild(messageDiv);
     });
+}
 
-    const data = await response.json();
+async function analyzeLogs() {
+    const inputField = document.getElementById("logInput");
+    const logInput = inputField.value.trim();
 
-    const resultDiv = document.getElementById("result");
-    resultDiv.style.display = "block";
-    resultDiv.innerText = data.result;
+    if (!logInput) return;
+
+    const chatContainer = document.getElementById("chatContainer");
+
+    // User message
+    const userMessage = document.createElement("div");
+    userMessage.className = "message user";
+    userMessage.innerText = logInput;
+    chatContainer.appendChild(userMessage);
+
+    currentChat.push({ role: "user", text: logInput });
+
+    inputField.value = "";
+
+    // Bot placeholder
+    const botMessage = document.createElement("div");
+    botMessage.className = "message bot";
+    botMessage.innerText = "⏳ Analyzing...";
+    chatContainer.appendChild(botMessage);
+
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    try {
+        const response = await fetch("/analyze", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ log_input: logInput })
+        });
+
+        if (!response.ok) {
+            throw new Error("API request failed");
+        }
+
+        const data = await response.json();
+
+        botMessage.innerText = data.result || "No response received.";
+
+        currentChat.push({ role: "bot", text: botMessage.innerText });
+
+    } catch (error) {
+        botMessage.innerText = "❌ Error: Could not analyze logs.";
+        console.error(error);
+    }
+
+    chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 </script>
 
